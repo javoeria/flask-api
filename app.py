@@ -1,6 +1,8 @@
 from flask import Flask
 from flask_restful import Resource, reqparse, Api
 
+from cryptography.fernet import Fernet
+
 app = Flask(__name__)
 api = Api(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///base.db'
@@ -26,7 +28,7 @@ class Movies_List(Resource):
     
     def post(self, movie):
         if Movies.find_by_title(movie):
-            return {' Message': 'Movie with the  title {} already exists'.format(movie)}
+            return {'Message': 'Movie with the title {} already exists'.format(movie)}
         args = Movies_List.parser.parse_args()
         item = Movies(movie, args['director'], args['genre'], args['collection'])
         item.save_to()
@@ -53,8 +55,16 @@ class Movies_List(Resource):
 class All_Movies(Resource):
     def get(self):
         return {'Movies': list(map(lambda x: x.json(), Movies.query.all()))}
+
+class Test_Crypto(Resource):
+    def get(self):
+        key = Fernet.generate_key()
+        f = Fernet(key)
+        token = f.encrypt(b"A really secret message. Not for prying eyes.")
+        return {'test': f.decrypt(token).decode()}
     
 api.add_resource(All_Movies, '/')
+api.add_resource(Test_Crypto, '/test')
 api.add_resource(Movies_List, '/<string:movie>')
 
 if __name__=='__main__':

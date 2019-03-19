@@ -13,7 +13,7 @@ class Movies(db.Model):
         self.director = director
         self.genre = genre
         self.collection = collection
-        
+    
     def json(self):
         return {'Title': self.title, 'Director': self.director, 'Genre': self.genre, 'Collection': self.collection}
     
@@ -24,10 +24,7 @@ class Movies(db.Model):
     def save_to(self):
         db.session.add(self)
         db.session.commit()
-        
+    
     def delete_(self):
         db.session.delete(self)
         db.session.commit()
-        
-    
-
