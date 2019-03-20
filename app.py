@@ -4,7 +4,6 @@ from flask_restful import Resource, Api
 import os
 import string
 import random
-from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
@@ -33,13 +32,10 @@ def unique_strings(k: int, pool: str=string.ascii_letters+string.digits) -> set:
     join = ''.join
     return join(random.choices(pool, k=k))
 
-class Test_Crypto(Resource):
+class Info(Resource):
     def get(self):
-        key = Fernet.generate_key()
-        f = Fernet(key)
-        token = f.encrypt(b"A really secret message. Not for prying eyes.")
-        return {'test': f.decrypt(token).decode()}
-    
+        return {'Create Key': '/create', 'Get Key': '/get/<key-id>', 'Show All Keys': '/all'}
+
 class Create_Key(Resource):
     def get(self):
         f = open("claves.txt", "ab")
@@ -80,9 +76,31 @@ class Get_Key(Resource):
         else:
             return {'key': 'null', 'key-id': 'null'}
 
-api.add_resource(Test_Crypto, '/')
+class Get_All(Resource):
+    def get(self):
+        array = []
+        diccionario_key = dict()
+
+        f = open("claves.txt", "rb")
+        f_id = open("id.txt", "r")
+        linea = f.read(32)
+        linea_id = f_id.read(16)
+
+        while len(linea)!=0 and len(linea_id)!=0:
+            decryptor = cipher.decryptor()
+            diccionario_key[linea_id] = decryptor.update(linea) + decryptor.finalize()
+            array.append({'key': diccionario_key[linea_id].decode(), 'key-id': linea_id})
+            linea = f.read(32)
+            linea_id = f_id.read(16)
+            
+        f.close()
+        f_id.close()
+        return array
+
+api.add_resource(Info, '/')
 api.add_resource(Create_Key, '/create')
 api.add_resource(Get_Key, '/get/<keyId>')
+api.add_resource(Get_All, '/all')
 
 if __name__=='__main__':
     
