@@ -97,10 +97,17 @@ class Get_All(Resource):
         f_id.close()
         return array
 
+class Delete_All(Resource):
+    def get(self):
+        open('claves.txt', 'w').close()
+        open('id.txt', 'w').close()
+        return {'close': True}
+
 api.add_resource(Info, '/')
 api.add_resource(Create_Key, '/create')
 api.add_resource(Get_Key, '/get/<keyId>')
 api.add_resource(Get_All, '/all')
+api.add_resource(Delete_All, '/delete')
 
 if __name__=='__main__':
     
