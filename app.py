@@ -2,6 +2,7 @@ from flask import Flask
 from flask_restful import Resource, Api
 
 import os
+import base64
 import string
 import random
 import secrets
@@ -59,11 +60,11 @@ class Create_Key(Resource):
         f = open("claves.txt", "ab")
         f_id = open("id.txt", "a")
         # newKey = unique_strings(k=32)
-        newKey = secrets.token_hex(32)
+        newKey = secrets.token_bytes(32)
         keyId = unique_strings(k=16)
 
         encryptor = cipher.encryptor()
-        ct = encryptor.update(str.encode(newKey))
+        ct = encryptor.update(newKey)
         encryptor.finalize()
 
         f.write(ct)
@@ -72,7 +73,7 @@ class Create_Key(Resource):
         f.close()
         f_id.close()  
         diccionario_key[keyId] = ct
-        return {'key': newKey, 'key-id': keyId}
+        return {'key': base64.urlsafe_b64encode(newKey).decode(), 'key-id': keyId}
 
 class Get_Key(Resource):
     def get(self, keyId):
@@ -80,7 +81,7 @@ class Get_Key(Resource):
             decryptor = cipher.decryptor() 
             key = decryptor.update(diccionario_key.get(keyId))
             decryptor.finalize()
-            return {'key': key.decode(), 'key-id': keyId}
+            return {'key': base64.urlsafe_b64encode(key).decode(), 'key-id': keyId}
         else:
             return {'key': 'null', 'key-id': 'null'}
 
@@ -91,7 +92,7 @@ class Get_All(Resource):
             decryptor = cipher.decryptor() 
             key = decryptor.update(diccionario_key.get(keyId))
             decryptor.finalize()
-            array.append({'key': key.decode(), 'key-id': keyId})
+            array.append({'key': base64.urlsafe_b64encode(key).decode(), 'key-id': keyId})
 
         return array
 
