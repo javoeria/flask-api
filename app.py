@@ -4,6 +4,7 @@ from flask_restful import Resource, Api
 import os
 import string
 import random
+import secrets
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
@@ -19,6 +20,23 @@ key = kdf.derive(b"my great password")
 
 iv = b"\x98\x1b\xba3\xf4k.\xb1'\xec\xb0\x7f\x14\xa1\xec\xbc"
 cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=backend)
+
+diccionario_key = dict()
+try:
+  f = open("claves.txt", "rb")
+  f_id = open("id.txt", "r")
+  linea = f.read(64)
+  linea_id = f_id.read(16)
+
+  while len(linea)!=0 and len(linea_id)!=0:
+    diccionario_key[linea_id] = linea
+    linea = f.read(64)
+    linea_id= f_id.read(16)
+
+  f.close()
+  f_id.close()
+except:
+  print("Error")
 
 def unique_strings(k: int, pool: str=string.ascii_letters+string.digits) -> set:
     """Generate a set of unique string tokens.
@@ -40,67 +58,48 @@ class Create_Key(Resource):
     def get(self):
         f = open("claves.txt", "ab")
         f_id = open("id.txt", "a")
-        newKey = unique_strings(k=32)
+        # newKey = unique_strings(k=32)
+        newKey = secrets.token_hex(64)
         keyId = unique_strings(k=16)
 
         encryptor = cipher.encryptor()
-        ct = encryptor.update(str.encode(newKey)) + encryptor.finalize()
+        ct = encryptor.update(str.encode(newKey))
+        encryptor.finalize()
 
         f.write(ct)
         f_id.write(keyId)
 
         f.close()
         f_id.close()  
+        diccionario_key[keyId] = ct
         return {'key': newKey, 'key-id': keyId}
 
 class Get_Key(Resource):
     def get(self, keyId):
-        diccionario_key = dict()
-
-        f = open("claves.txt", "rb")
-        f_id = open("id.txt", "r")
-        linea = f.read(32)
-        linea_id = f_id.read(16)
-
-        while len(linea)!=0 and len(linea_id)!=0:
-            decryptor = cipher.decryptor()
-            diccionario_key[linea_id] = decryptor.update(linea) + decryptor.finalize()
-            linea = f.read(32)
-            linea_id = f_id.read(16)
-            
-        f.close()
-        f_id.close()
-
         if (diccionario_key.get(keyId) != None):
-            return {'key': diccionario_key.get(keyId).decode(), 'key-id': keyId}
+            decryptor = cipher.decryptor() 
+            key = decryptor.update(diccionario_key.get(keyId))
+            decryptor.finalize()
+            return {'key': key.decode(), 'key-id': keyId}
         else:
             return {'key': 'null', 'key-id': 'null'}
 
 class Get_All(Resource):
     def get(self):
         array = []
-        diccionario_key = dict()
+        for keyId in diccionario_key:
+            decryptor = cipher.decryptor() 
+            key = decryptor.update(diccionario_key.get(keyId))
+            decryptor.finalize()
+            array.append({'key': key.decode(), 'key-id': keyId})
 
-        f = open("claves.txt", "rb")
-        f_id = open("id.txt", "r")
-        linea = f.read(32)
-        linea_id = f_id.read(16)
-
-        while len(linea)!=0 and len(linea_id)!=0:
-            decryptor = cipher.decryptor()
-            diccionario_key[linea_id] = decryptor.update(linea) + decryptor.finalize()
-            array.append({'key': diccionario_key[linea_id].decode(), 'key-id': linea_id})
-            linea = f.read(32)
-            linea_id = f_id.read(16)
-            
-        f.close()
-        f_id.close()
         return array
 
 class Delete_All(Resource):
     def get(self):
         open('claves.txt', 'w').close()
         open('id.txt', 'w').close()
+        diccionario_key.clear()
         return {'close': True}
 
 api.add_resource(Info, '/')
