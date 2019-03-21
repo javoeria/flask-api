@@ -25,12 +25,12 @@ diccionario_key = dict()
 try:
   f = open("claves.txt", "rb")
   f_id = open("id.txt", "r")
-  linea = f.read(64)
+  linea = f.read(32)
   linea_id = f_id.read(16)
 
   while len(linea)!=0 and len(linea_id)!=0:
     diccionario_key[linea_id] = linea
-    linea = f.read(64)
+    linea = f.read(32)
     linea_id= f_id.read(16)
 
   f.close()
@@ -59,7 +59,7 @@ class Create_Key(Resource):
         f = open("claves.txt", "ab")
         f_id = open("id.txt", "a")
         # newKey = unique_strings(k=32)
-        newKey = secrets.token_hex(64)
+        newKey = secrets.token_hex(32)
         keyId = unique_strings(k=16)
 
         encryptor = cipher.encryptor()
